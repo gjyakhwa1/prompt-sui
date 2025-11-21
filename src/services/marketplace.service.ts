@@ -249,6 +249,8 @@ export class MarketplaceService {
    */
   async getPrompt(promptId: string): Promise<PromptListing | null> {
     try {
+      console.log("🔍 [MarketplaceService] Fetching prompt:", promptId);
+      
       const prompt = await this.suiClient.getObject({
         id: promptId,
         options: {
@@ -256,16 +258,26 @@ export class MarketplaceService {
         },
       });
 
+      console.log("📦 [MarketplaceService] Raw prompt data:", JSON.stringify(prompt, null, 2));
+
       const promptContent = prompt.data?.content as Record<string, unknown>;
       const promptFields = promptContent?.fields as Record<string, unknown>;
 
       if (!promptFields) {
+        console.error("❌ [MarketplaceService] No fields found in prompt data");
         return null;
       }
 
-      const idField = promptFields?.id as Record<string, unknown>;
+      console.log("📋 [MarketplaceService] Prompt fields:", JSON.stringify(promptFields, null, 2));
 
-      return {
+      const idField = promptFields?.id as Record<string, unknown>;
+      const buyersRaw = promptFields?.buyers;
+      
+      console.log("👥 [MarketplaceService] Raw buyers field:", buyersRaw);
+      console.log("👥 [MarketplaceService] Buyers type:", typeof buyersRaw);
+      console.log("👥 [MarketplaceService] Buyers is array?", Array.isArray(buyersRaw));
+
+      const promptListing = {
         id: (idField?.id as string) || promptId,
         owner: (promptFields?.owner as string) || "",
         title: (promptFields?.title as string) || "",
@@ -278,8 +290,28 @@ export class MarketplaceService {
         buyers: (promptFields?.buyers as string[]) || [],
         allowlist: (promptFields?.allowlist as string[]) || [],
       };
+
+      console.log("✅ [MarketplaceService] Parsed prompt listing:");
+      console.log("  - ID:", promptListing.id);
+      console.log("  - Title:", promptListing.title);
+      console.log("  - Owner:", promptListing.owner);
+      console.log("  - Buyers:", promptListing.buyers);
+      console.log("  - Buyers length:", promptListing.buyers.length);
+      console.log("  - Allowlist:", promptListing.allowlist);
+      console.log("  - Allowlist length:", promptListing.allowlist?.length || 0);
+      
+      // Check if allowlist and buyers are the same or different
+      if (promptListing.allowlist && promptListing.allowlist.length > 0) {
+        console.log("📋 [MarketplaceService] Allowlist vs Buyers comparison:");
+        console.log("  - Allowlist has entries that buyers doesn't:", 
+          promptListing.allowlist.filter(a => !promptListing.buyers.includes(a)));
+        console.log("  - Buyers has entries that allowlist doesn't:", 
+          promptListing.buyers.filter(b => !promptListing.allowlist.includes(b)));
+      }
+
+      return promptListing;
     } catch (error) {
-      console.error("Error fetching prompt:", error);
+      console.error("❌ [MarketplaceService] Error fetching prompt:", error);
       throw error;
     }
   }
@@ -333,12 +365,15 @@ export class MarketplaceService {
     }>
   ): Promise<{ success: boolean; digest: string }> {
     try {
-      console.log("💰 Buying prompt:", promptId, "for", price, "SUI");
+      console.log("💰 [MarketplaceService] Starting purchase...");
+      console.log("  - Prompt ID:", promptId);
+      console.log("  - Price:", price, "SUI");
 
       const buyTx = new Transaction();
 
       // Convert SUI to MIST (1 SUI = 1,000,000,000 MIST)
       const priceInMist = Math.floor(price * 1_000_000_000);
+      console.log("  - Price in MIST:", priceInMist);
 
       // Split coins for payment
       const [coin] = buyTx.splitCoins(buyTx.gas, [priceInMist]);
@@ -352,20 +387,35 @@ export class MarketplaceService {
         ],
       });
 
+      console.log("📝 [MarketplaceService] Transaction built, waiting for signature...");
       const result = await signAndExecute(buyTx);
+      console.log("✅ [MarketplaceService] Transaction signed, digest:", result.digest);
 
-      await this.suiClient.waitForTransaction({
+      console.log("⏳ [MarketplaceService] Waiting for transaction confirmation...");
+      const txResult = await this.suiClient.waitForTransaction({
         digest: result.digest,
+        options: {
+          showEffects: true,
+          showObjectChanges: true,
+        },
       });
 
-      console.log("✅ Prompt purchased successfully");
+      console.log("✅ [MarketplaceService] Transaction confirmed!");
+      console.log("📦 [MarketplaceService] Transaction result:", JSON.stringify(txResult, null, 2));
+
+      // Fetch updated prompt to verify buyer was added
+      console.log("🔍 [MarketplaceService] Fetching updated prompt to verify purchase...");
+      const updatedPrompt = await this.getPrompt(promptId);
+      if (updatedPrompt) {
+        console.log("👥 [MarketplaceService] Updated buyers list:", updatedPrompt.buyers);
+      }
 
       return {
         success: true,
         digest: result.digest,
       };
     } catch (error) {
-      console.error("❌ Error buying prompt:", error);
+      console.error("❌ [MarketplaceService] Error buying prompt:", error);
       throw error;
     }
   }

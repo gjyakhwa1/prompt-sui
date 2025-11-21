@@ -47,21 +47,68 @@ const PromptDetail = () => {
       setLoading(true);
 
       try {
+        console.log("🔍 [PromptDetail] Fetching prompt data...");
+        console.log("  - Prompt ID:", id);
+        console.log("  - Current wallet address:", walletAddress);
+        
         const marketplaceService = new MarketplaceService(suiClient);
         const promptData = await marketplaceService.getPrompt(id);
 
         if (promptData) {
+          console.log("✅ [PromptDetail] Prompt data fetched successfully");
+          console.log("  - Prompt title:", promptData.title);
+          console.log("  - Prompt owner:", promptData.owner);
+          console.log("  - Buyers array:", promptData.buyers);
+          console.log("  - Number of buyers:", promptData.buyers.length);
+          console.log("  - Buyers list:", JSON.stringify(promptData.buyers, null, 2));
+          
           setPrompt(promptData);
           
           // Check if user already purchased
-          if (walletAddress && promptData.buyers.includes(walletAddress)) {
-            setPurchased(true);
+          if (walletAddress) {
+            const hasPurchased = promptData.buyers.includes(walletAddress);
+            const isInAllowlist = promptData.allowlist?.includes(walletAddress);
+            
+            console.log("🔐 [PromptDetail] Checking purchase status:");
+            console.log("  - Current wallet:", walletAddress);
+            console.log("  - Is in buyers list?", hasPurchased);
+            console.log("  - Is in allowlist?", isInAllowlist);
+            console.log("  - Buyers array:", promptData.buyers);
+            console.log("  - Allowlist array:", promptData.allowlist);
+            console.log("  - Buyers array includes check:", promptData.buyers.includes(walletAddress));
+            console.log("  - Allowlist includes check:", promptData.allowlist?.includes(walletAddress));
+            
+            // Check if user has access via either buyers list OR allowlist
+            const hasAccess = hasPurchased || isInAllowlist;
+            
+            if (hasAccess) {
+              console.log("✅ [PromptDetail] User HAS access to this prompt!");
+              console.log(`  - Access via: ${hasPurchased ? 'buyers list' : 'allowlist'}`);
+              setPurchased(true);
+            } else {
+              console.log("❌ [PromptDetail] User has NO access to this prompt");
+              console.log("  - Comparing buyers addresses:");
+              promptData.buyers.forEach((buyer, index) => {
+                console.log(`    Buyer ${index}: ${buyer}`);
+                console.log(`    Match? ${buyer === walletAddress}`);
+                console.log(`    Lowercase match? ${buyer.toLowerCase() === walletAddress.toLowerCase()}`);
+              });
+              console.log("  - Comparing allowlist addresses:");
+              promptData.allowlist?.forEach((allowed, index) => {
+                console.log(`    Allowed ${index}: ${allowed}`);
+                console.log(`    Match? ${allowed === walletAddress}`);
+                console.log(`    Lowercase match? ${allowed.toLowerCase() === walletAddress.toLowerCase()}`);
+              });
+            }
+          } else {
+            console.log("⚠️ [PromptDetail] No wallet address available for purchase check");
           }
         } else {
+          console.error("❌ [PromptDetail] Prompt not found");
           toast.error("Prompt not found");
         }
       } catch (error) {
-        console.error("Error fetching prompt:", error);
+        console.error("❌ [PromptDetail] Error fetching prompt:", error);
         toast.error("Could not load prompt");
       } finally {
         setLoading(false);
