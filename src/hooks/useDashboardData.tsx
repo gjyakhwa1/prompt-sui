@@ -1,30 +1,38 @@
 import { useState, useEffect } from "react";
 
-/* Previously hardcoded defaults for dashboard cards.
-const DEFAULT_PURCHASED_PROMPTS = [...]
-const DEFAULT_UPLOADED_PROMPTS = [...]
-These have been commented out to avoid showing placeholder data in the UI.
-*/
+interface PromptData {
+  id: string;
+  title: string;
+  category: string;
+  [key: string]: unknown;
+}
 
 interface DashboardData {
-  uploadedPrompts: any[];
-  purchasedPrompts: any[];
+  uploadedPrompts: PromptData[];
+  purchasedPrompts: PromptData[];
   loading: boolean;
   error: string | null;
   refetch: () => void;
 }
 
 /**
- * Custom hook to fetch dashboard data
- * Combines default prompts with user's actual data from backend
+ * Custom hook to fetch dashboard data from Sui blockchain
+ * Fetches user's uploaded and purchased prompts from smart contracts
  */
 export const useDashboardData = (userId: string | undefined): DashboardData => {
-  const [uploadedPrompts, setUploadedPrompts] = useState<any[]>([]);
-  const [purchasedPrompts, setPurchasedPrompts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [uploadedPrompts] = useState<PromptData[]>([]);
+  const [purchasedPrompts] = useState<PromptData[]>([]);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
+  
+  // TODO: Sui Blockchain Integration - Uncomment these when implementing blockchain queries
+  // const [uploadedPrompts, setUploadedPrompts] = useState<PromptData[]>([]);
+  // const [purchasedPrompts, setPurchasedPrompts] = useState<PromptData[]>([]);
+  // const [loading, setLoading] = useState(false);
+  // const [error, setError] = useState<string | null>(null);
 
   const fetchDashboardData = async () => {
+    // TODO: Sui Blockchain Integration - Uncomment when ready
     // Use test address if in development and no userId provided
     // const effectiveUserId = userId || (import.meta.env.DEV ? "0xf48a46401b66bc6d5cf9171e5db9f8de2acec2a666c58c00300d6c06ff82bd60" : undefined);
     
@@ -51,7 +59,7 @@ export const useDashboardData = (userId: string | undefined): DashboardData => {
     //     title: content.title,
     //     category: content.metadata?.category || "Uncategorized",
     //     sales: content.metadata?.sales_count || 0,
-    //     revenue: `$${(content.metadata?.revenue || 0).toFixed(2)}`,
+    //     revenue: `${(content.metadata?.revenue || 0).toFixed(2)}`,
     //     status: "Active",
     //     image: content.preview_url || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
     //     price: content.price,
@@ -76,7 +84,7 @@ export const useDashboardData = (userId: string | undefined): DashboardData => {
     //             title: content.title,
     //             category: content.metadata?.category || "Uncategorized",
     //             author: "Unknown", // TODO: Fetch owner name
-    //             price: `$${content.price.toFixed(2)}`,
+    //             price: `${content.price.toFixed(2)}`,
     //             date: purchase.purchased_at || new Date().toISOString().split('T')[0], // Fallback to today if missing
     //             image: content.preview_url || "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
     //             isDefault: false,

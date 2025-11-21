@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/notfound";
 import Dashboard from "@/pages/dashboard";
+import Marketplace from "@/pages/marketplace";
 
 export const router = createBrowserRouter([
   {
@@ -20,7 +21,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/marketplace",
-    element: <Index />,
+    element: <Marketplace />,
     errorElement: <NotFound />,
   },
   {
