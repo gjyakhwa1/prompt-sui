@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/notfound";
 import Dashboard from "@/pages/dashboard";
+import Profile from "@/pages/profile";
 
 export const router = createBrowserRouter([
   {
@@ -26,6 +27,11 @@ export const router = createBrowserRouter([
   {
     path: "/sell-prompt",
     element: <Index />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: "/profile",
+    element: <Profile />,
     errorElement: <NotFound />,
   },
 ]);
