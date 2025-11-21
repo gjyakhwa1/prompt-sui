@@ -30,10 +30,7 @@ const PromptCard = ({
   imageUrl,
 }: PromptCardProps) => {
 
-  const formattedPrice = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(price);
+  const formattedPrice = `${price.toFixed(2)} SUI`;
 
   return (
     <Link
@@ -55,10 +52,14 @@ const PromptCard = ({
           <Badge variant="outline" className="bg-neon-purple/10 text-white ">
             {model}
           </Badge>
-          <span className="text-lg font-light tracking-wider text-white">
+          <span className="text-lg font-light tracking-wider text-teal-400">
             {formattedPrice}
           </span>
         </div>
+
+        <h3 className="text-lg font-semibold text-white mb-2 line-clamp-1">
+          {title}
+        </h3>
 
         <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
           {description}

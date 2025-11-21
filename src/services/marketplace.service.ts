@@ -161,8 +161,10 @@ export class MarketplaceService {
   /**
    * Fetches all prompts from the marketplace
    */
-  async getAllPrompts(): Promise<unknown[]> {
+  async getAllPrompts(): Promise<PromptListing[]> {
     try {
+      console.log("📦 Fetching marketplace data...");
+      
       const marketplace = await this.suiClient.getObject({
         id: MARKETPLACE_OBJECT_ID,
         options: {
@@ -175,22 +177,69 @@ export class MarketplaceService {
       const fields = content?.fields as Record<string, unknown>;
       const promptIds = (fields?.prompts as string[]) || [];
 
+      console.log(`📦 Found ${promptIds.length} prompts in marketplace`);
+
+      if (promptIds.length === 0) {
+        return [];
+      }
+
       // Fetch details for each prompt
       const prompts = await Promise.all(
         promptIds.map(async (id: string) => {
-          const prompt = await this.suiClient.getObject({
-            id,
-            options: {
-              showContent: true,
-            },
-          });
-          return prompt.data;
+          try {
+            const prompt = await this.suiClient.getObject({
+              id,
+              options: {
+                showContent: true,
+              },
+            });
+
+            const promptContent = prompt.data?.content as Record<string, unknown>;
+            const promptFields = promptContent?.fields as Record<string, unknown>;
+
+            if (!promptFields) {
+              console.warn(`⚠️ No fields found for prompt ${id}`);
+              return null;
+            }
+
+            const idField = promptFields?.id as Record<string, unknown>;
+            
+            const promptData = {
+              id: (idField?.id as string) || id,
+              owner: (promptFields?.owner as string) || "",
+              title: (promptFields?.title as string) || "",
+              description: (promptFields?.description as string) || "",
+              price: parseInt((promptFields?.price as string) || "0") / 1_000_000_000, // Convert MIST to SUI
+              inputSample: (promptFields?.input_sample as string) || "",
+              outputSample: (promptFields?.output_sample as string) || "",
+              category: (promptFields?.category as number) || 0, // 0=text, 1=image
+              encryptedData: (promptFields?.encrypted_data as number[]) || [],
+              buyers: (promptFields?.buyers as string[]) || [],
+            };
+            
+            console.log(`📋 Prompt ${id} data:`, {
+              title: promptData.title,
+              category: promptData.category,
+              outputSample: promptData.outputSample,
+              isWalrusBlobId: !promptData.outputSample.startsWith('http'),
+            });
+            
+            return promptData;
+          } catch (error) {
+            console.error(`Error fetching prompt ${id}:`, error);
+            return null;
+          }
         })
       );
 
-      return prompts;
+      // Filter out null values
+      const validPrompts = prompts.filter((p): p is PromptListing => p !== null);
+      
+      console.log(`✅ Successfully fetched ${validPrompts.length} prompts`);
+      
+      return validPrompts;
     } catch (error) {
-      console.error("Error fetching prompts:", error);
+      console.error("❌ Error fetching prompts:", error);
       throw error;
     }
   }
@@ -198,7 +247,7 @@ export class MarketplaceService {
   /**
    * Fetches a single prompt by ID
    */
-  async getPrompt(promptId: string): Promise<unknown> {
+  async getPrompt(promptId: string): Promise<PromptListing | null> {
     try {
       const prompt = await this.suiClient.getObject({
         id: promptId,
@@ -207,10 +256,81 @@ export class MarketplaceService {
         },
       });
 
-      return prompt.data;
+      const promptContent = prompt.data?.content as Record<string, unknown>;
+      const promptFields = promptContent?.fields as Record<string, unknown>;
+
+      if (!promptFields) {
+        return null;
+      }
+
+      const idField = promptFields?.id as Record<string, unknown>;
+
+      return {
+        id: (idField?.id as string) || promptId,
+        owner: (promptFields?.owner as string) || "",
+        title: (promptFields?.title as string) || "",
+        description: (promptFields?.description as string) || "",
+        price: parseInt((promptFields?.price as string) || "0") / 1_000_000_000,
+        inputSample: (promptFields?.input_sample as string) || "",
+        outputSample: (promptFields?.output_sample as string) || "",
+        category: (promptFields?.category as number) || 0,
+        encryptedData: (promptFields?.encrypted_data as number[]) || [],
+        buyers: (promptFields?.buyers as string[]) || [],
+      };
     } catch (error) {
       console.error("Error fetching prompt:", error);
       throw error;
     }
   }
+
+  /**
+   * Get the display format for output sample based on category
+   */
+  getOutputDisplay(prompt: PromptListing): { type: 'text' | 'image', value: string } {
+    if (prompt.category === 1) {
+      // Image - outputSample can be either a blob_id or a full URL
+      const outputSample = prompt.outputSample;
+      
+      console.log(`🖼️ Processing image output for "${prompt.title}":`, {
+        outputSample,
+        isFullUrl: outputSample.startsWith('http://') || outputSample.startsWith('https://'),
+      });
+      
+      // Check if it's already a full URL (starts with http:// or https://)
+      if (outputSample.startsWith('http://') || outputSample.startsWith('https://')) {
+        console.log(`  ✅ Using full URL as-is: ${outputSample}`);
+        return {
+          type: 'image',
+          value: outputSample
+        };
+      }
+      
+      // Otherwise, it's a blob_id - construct Walrus URL
+      const walrusUrl = `https://aggregator.walrus-testnet.walrus.space/v1/${outputSample}`;
+      console.log(`  ✅ Constructed Walrus URL: ${walrusUrl}`);
+      return {
+        type: 'image',
+        value: walrusUrl
+      };
+    } else {
+      // Text - outputSample is the actual text
+      return {
+        type: 'text',
+        value: prompt.outputSample
+      };
+    }
+  }
+}
+
+export interface PromptListing {
+  id: string;
+  owner: string;
+  title: string;
+  description: string;
+  price: number; // in SUI
+  inputSample: string;
+  outputSample: string; // text or blob_id
+  category: number; // 0=text, 1=image
+  encryptedData: number[];
+  buyers: string[];
 }
