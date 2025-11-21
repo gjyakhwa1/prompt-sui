@@ -4,6 +4,7 @@ import NotFound from "@/pages/notfound";
 import Dashboard from "@/pages/dashboard";
 import Marketplace from "@/pages/marketplace";
 import SellPrompt from "@/pages/sell-prompt";
+import PromptDetail from "@/pages/prompt-detail";
 
 export const router = createBrowserRouter([
   {
@@ -33,6 +34,11 @@ export const router = createBrowserRouter([
   {
     path: "/sell-prompt/:id",
     element: <SellPrompt />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: "/prompt/:id",
+    element: <PromptDetail />,
     errorElement: <NotFound />,
   },
 ]);

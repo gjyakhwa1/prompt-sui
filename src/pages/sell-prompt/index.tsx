@@ -562,26 +562,24 @@ const SellPrompt = () => {
   // Check if user is authenticated
   if (!currentAccount?.address) {
     return (
-      <div className="min-h-screen flex flex-col mesh-bg">
-        <MainLayout>
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="max-w-md text-center">
-              <h2 className="text-2xl font-bold text-white mb-4">
-                Authentication Required
-              </h2>
-              <p className="text-gray-400 mb-6">
-                Please connect your wallet to create or edit prompts.
-              </p>
-              <Button
-                className="button-primary px-6 py-3 rounded-xl"
-                onClick={login}
-              >
-                Connect
-              </Button>
-            </div>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center mesh-bg">
+          <div className="max-w-md text-center">
+            <h2 className="text-2xl font-bold text-white mb-4">
+              Authentication Required
+            </h2>
+            <p className="text-gray-400 mb-6">
+              Please connect your wallet to create or edit prompts.
+            </p>
+            <Button
+              className="button-primary px-6 py-3 rounded-xl"
+              onClick={login}
+            >
+              Connect
+            </Button>
           </div>
-        </MainLayout>
-      </div>
+        </div>
+      </MainLayout>
     )
   }
 
