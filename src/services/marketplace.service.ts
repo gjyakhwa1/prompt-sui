@@ -204,6 +204,13 @@ export class MarketplaceService {
 
             const idField = promptFields?.id as Record<string, unknown>;
 
+            // Debug: Log raw field values
+            console.log(`🔍 Raw fields for prompt ${id}:`, {
+              owner: promptFields?.owner,
+              buyers: promptFields?.buyers,
+              allowlist: promptFields?.allowlist,
+            });
+
             const promptData = {
               id: (idField?.id as string) || id,
               owner: (promptFields?.owner as string) || "",
@@ -215,12 +222,16 @@ export class MarketplaceService {
               category: (promptFields?.category as number) || 0, // 0=text, 1=image
               encryptedData: (promptFields?.encrypted_data as number[]) || [],
               buyers: (promptFields?.buyers as string[]) || [],
+              allowlist: (promptFields?.allowlist as string[]) || [],
             };
 
-            console.log(`📋 Prompt ${id} data:`, {
+            console.log(`📋 Prompt ${id} parsed data:`, {
               title: promptData.title,
+              owner: promptData.owner,
               category: promptData.category,
               outputSample: promptData.outputSample,
+              buyers: promptData.buyers,
+              allowlist: promptData.allowlist,
               isWalrusBlobId: !promptData.outputSample.startsWith('http'),
             });
 
