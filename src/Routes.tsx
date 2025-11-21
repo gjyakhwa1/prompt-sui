@@ -3,6 +3,7 @@ import Index from "@/pages/Index";
 import NotFound from "@/pages/notfound";
 import Dashboard from "@/pages/dashboard";
 import Marketplace from "@/pages/marketplace";
+import SellPrompt from "@/pages/sell-prompt";
 
 export const router = createBrowserRouter([
   {
@@ -26,7 +27,12 @@ export const router = createBrowserRouter([
   },
   {
     path: "/sell-prompt",
-    element: <Index />,
+    element: <SellPrompt />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: "/sell-prompt/:id",
+    element: <SellPrompt />,
     errorElement: <NotFound />,
   },
 ]);
