@@ -416,8 +416,13 @@ const SellPrompt = () => {
 
       toast.success(`Prompt "${formData.title}" listed successfully!`)
       
+      // Redirect to the prompt detail page
       setTimeout(() => {
-        navigate("/")
+        if (result.promptId) {
+          navigate(`/prompt/${result.promptId}`)
+        } else {
+          navigate("/")
+        }
       }, 1500)
     } catch (error) {
       console.error("Error submitting prompt:", error)
