@@ -32,7 +32,7 @@ export class MarketplaceService {
 
   constructor(suiClient: SuiClient) {
     this.suiClient = suiClient;
-    
+
     // Initialize SEAL client with testnet key servers
     this.sealClient = new SealClient({
       suiClient: this.suiClient,
@@ -64,12 +64,12 @@ export class MarketplaceService {
     try {
       // Step 1: Create prompt on-chain
       console.log("📝 Step 1: Creating prompt on-chain...");
-      
+
       const createPromptTx = new Transaction();
-      
+
       // Convert SUI to MIST (1 SUI = 1,000,000,000 MIST)
       const priceInMist = Math.floor(params.price * 1_000_000_000);
-      
+
       createPromptTx.moveCall({
         target: `${PACKAGE_ID}::marketplace::list_prompt` as `${string}::${string}::${string}`,
         arguments: [
@@ -102,9 +102,9 @@ export class MarketplaceService {
       const createdObjects = txResponse.objectChanges?.filter(
         (obj) => obj.type === "created"
       );
-      
+
       console.log("Created objects:", createdObjects);
-      
+
       const promptId = createdObjects?.[0]?.objectId;
 
       if (!promptId) {
@@ -116,7 +116,7 @@ export class MarketplaceService {
 
       // Step 2: Encrypt the prompt content
       console.log("🔐 Step 2: Encrypting prompt content...");
-      
+
       const promptBytes = new TextEncoder().encode(params.promptContent);
       const encryptedData = await encryptData(
         PACKAGE_ID,
@@ -124,12 +124,12 @@ export class MarketplaceService {
         promptId,
         promptBytes
       );
-      
+
       console.log("✅ Prompt encrypted, size:", encryptedData.length, "bytes");
 
       // Step 3: Update prompt with encrypted data
       console.log("📤 Step 3: Storing encrypted data on-chain...");
-      
+
       const updateTx = new Transaction();
       updateTx.moveCall({
         target: `${PACKAGE_ID}::marketplace::update_encrypted_data` as `${string}::${string}::${string}`,
@@ -164,7 +164,7 @@ export class MarketplaceService {
   async getAllPrompts(): Promise<PromptListing[]> {
     try {
       console.log("📦 Fetching marketplace data...");
-      
+
       const marketplace = await this.suiClient.getObject({
         id: MARKETPLACE_OBJECT_ID,
         options: {
@@ -203,7 +203,7 @@ export class MarketplaceService {
             }
 
             const idField = promptFields?.id as Record<string, unknown>;
-            
+
             const promptData = {
               id: (idField?.id as string) || id,
               owner: (promptFields?.owner as string) || "",
@@ -216,14 +216,14 @@ export class MarketplaceService {
               encryptedData: (promptFields?.encrypted_data as number[]) || [],
               buyers: (promptFields?.buyers as string[]) || [],
             };
-            
+
             console.log(`📋 Prompt ${id} data:`, {
               title: promptData.title,
               category: promptData.category,
               outputSample: promptData.outputSample,
               isWalrusBlobId: !promptData.outputSample.startsWith('http'),
             });
-            
+
             return promptData;
           } catch (error) {
             console.error(`Error fetching prompt ${id}:`, error);
@@ -234,9 +234,9 @@ export class MarketplaceService {
 
       // Filter out null values
       const validPrompts = prompts.filter((p): p is PromptListing => p !== null);
-      
+
       console.log(`✅ Successfully fetched ${validPrompts.length} prompts`);
-      
+
       return validPrompts;
     } catch (error) {
       console.error("❌ Error fetching prompts:", error);
@@ -290,12 +290,12 @@ export class MarketplaceService {
     if (prompt.category === 1) {
       // Image - outputSample can be either a blob_id or a full URL
       const outputSample = prompt.outputSample;
-      
+
       console.log(`🖼️ Processing image output for "${prompt.title}":`, {
         outputSample,
         isFullUrl: outputSample.startsWith('http://') || outputSample.startsWith('https://'),
       });
-      
+
       // Check if it's already a full URL (starts with http:// or https://)
       if (outputSample.startsWith('http://') || outputSample.startsWith('https://')) {
         console.log(`  ✅ Using full URL as-is: ${outputSample}`);
@@ -304,7 +304,7 @@ export class MarketplaceService {
           value: outputSample
         };
       }
-      
+
       // Otherwise, it's a blob_id - construct Walrus URL
       const walrusUrl = `https://aggregator.walrus-testnet.walrus.space/v1/${outputSample}`;
       console.log(`  ✅ Constructed Walrus URL: ${walrusUrl}`);
@@ -318,6 +318,109 @@ export class MarketplaceService {
         type: 'text',
         value: prompt.outputSample
       };
+    }
+  }
+
+  /**
+   * Buys a prompt by paying the specified price
+   */
+  async buyPrompt(
+    promptId: string,
+    price: number,
+    signAndExecute: (tx: Transaction) => Promise<{
+      digest: string;
+    }>
+  ): Promise<{ success: boolean; digest: string }> {
+    try {
+      console.log("💰 Buying prompt:", promptId, "for", price, "SUI");
+
+      const buyTx = new Transaction();
+
+      // Convert SUI to MIST (1 SUI = 1,000,000,000 MIST)
+      const priceInMist = Math.floor(price * 1_000_000_000);
+
+      // Split coins for payment
+      const [coin] = buyTx.splitCoins(buyTx.gas, [priceInMist]);
+
+      // Call buy_prompt function
+      buyTx.moveCall({
+        target: `${PACKAGE_ID}::marketplace::purchase_access` as `${string}::${string}::${string}`,
+        arguments: [
+          buyTx.object(promptId),
+          coin,
+        ],
+      });
+
+      const result = await signAndExecute(buyTx);
+
+      await this.suiClient.waitForTransaction({
+        digest: result.digest,
+      });
+
+      console.log("✅ Prompt purchased successfully");
+
+      return {
+        success: true,
+        digest: result.digest,
+      };
+    } catch (error) {
+      console.error("❌ Error buying prompt:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Decrypts a prompt that the user has purchased
+   */
+  async decryptPrompt(
+    promptId: string,
+    userAddress: string,
+    signPersonalMessage: (message: { message: Uint8Array }) => Promise<{ signature: string }>
+  ): Promise<string> {
+    try {
+      console.log("🔐 Starting decryption for prompt:", promptId);
+
+      // Step 1: Fetch the prompt to get encrypted data
+      const prompt = await this.getPrompt(promptId);
+
+      if (!prompt) {
+        throw new Error("Prompt not found");
+      }
+
+      if (!prompt.encryptedData || prompt.encryptedData.length === 0) {
+        throw new Error("No encrypted data found for this prompt");
+      }
+
+      // Step 2: Check if user is in buyers list
+      if (!prompt.buyers.includes(userAddress)) {
+        throw new Error("You must purchase this prompt before decrypting it");
+      }
+
+      // Step 3: Convert encrypted data array to Uint8Array
+      const encryptedBytes = new Uint8Array(prompt.encryptedData);
+
+      // Step 4: Decrypt using SEAL
+      const { decryptData } = await import("@/utils/seal/decrypt");
+
+      const decryptedBytes = await decryptData({
+        packageId: PACKAGE_ID,
+        sealClient: this.sealClient,
+        suiClient: this.suiClient,
+        promptId,
+        encryptedBytes,
+        userAddress,
+        signPersonalMessage,
+      });
+
+      // Step 5: Convert decrypted bytes to string
+      const decryptedText = new TextDecoder().decode(decryptedBytes);
+
+      console.log("✅ Prompt decrypted successfully");
+
+      return decryptedText;
+    } catch (error) {
+      console.error("❌ Error decrypting prompt:", error);
+      throw error;
     }
   }
 }
