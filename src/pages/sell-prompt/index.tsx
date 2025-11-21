@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import axios from "axios"
+// import axios from "axios" // Removed - not needed without USD price fetching
 import { useCurrentAccount } from "@mysten/dapp-kit"
 import { useLogin } from "@/context/AuthContext"
 import {
@@ -16,8 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
-import { Info, PlusCircle, Trash, Lock, Loader2, ArrowRight, ArrowLeft, CheckCircle2, FileText, DollarSign, Image as ImageIcon, Code, Upload, AlertCircle } from "lucide-react"
+// import { Slider } from "@/components/ui/slider" // Removed - using input instead of slider
+import { Info, PlusCircle, Trash, Lock, Loader2, ArrowRight, ArrowLeft, CheckCircle2, FileText, Image as ImageIcon, Code, Upload } from "lucide-react"
+// DollarSign, AlertCircle - Removed unused icons
 import {
   Tooltip,
   TooltipContent,
@@ -42,8 +43,8 @@ const SellPrompt = () => {
     category: "prompt",
     subcategory: "",
     model: "dall-e-3",
-    price: 19.99,
-    testPrice: 1.99,
+    price: 10, // Price in SUI tokens
+    // testPrice: 1.99, // Removed - using single SUI price
     systemPrompt: "",
     userPrompt: "",
     bottleId: "",
@@ -65,7 +66,7 @@ const SellPrompt = () => {
     frequencyPenalty: [0.5],
     presencePenalty: [0.5],
   })
-  const [currentSuiPrice, setCurrentSuiPrice] = useState(0)
+  // const [currentSuiPrice, setCurrentSuiPrice] = useState(0) // Removed - not needed for SUI pricing
   const [imageSizes, setImageSizes] = useState<Record<number, string>>({})
   const [imageFiles, setImageFiles] = useState<Record<number, File>>({})
   const [isEncrypting, setIsEncrypting] = useState(false)
@@ -133,55 +134,57 @@ const SellPrompt = () => {
     }
   }, [id])
 
-  useEffect(() => {
-    const fetchCoinPriceHistory = async (
-      coinId: string,
-      timeDeltaInSeconds = 360,
-      pricePrecision = 5
-    ) => {
-      const nowTimestamp = Math.floor(Date.now() / 1000)
-      const fromTimestamp = nowTimestamp - timeDeltaInSeconds
+  // TODO: Old USD price fetching - Commented out for direct SUI pricing
+  // useEffect(() => {
+  //   const fetchCoinPriceHistory = async (
+  //     coinId: string,
+  //     timeDeltaInSeconds = 360,
+  //     pricePrecision = 5
+  //   ) => {
+  //     const nowTimestamp = Math.floor(Date.now() / 1000)
+  //     const fromTimestamp = nowTimestamp - timeDeltaInSeconds
+  //
+  //     const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart/range`
+  //
+  //     try {
+  //       const { data } = await axios.get(url, {
+  //         params: {
+  //           vs_currency: "usd",
+  //           from: fromTimestamp,
+  //           to: nowTimestamp,
+  //           precision: pricePrecision,
+  //         },
+  //         headers: {
+  //           accept: "application/json",
+  //           "x-cg-demo-api-key": "CG-JwZR5W5Wk65HhZTgD6cUejGt",
+  //         },
+  //       })
+  //
+  //       console.log("response", data)
+  //       const latestprice = data.prices
+  //       console.log("latestprice", latestprice[0][1])
+  //
+  //       setCurrentSuiPrice(latestprice[0][1])
+  //       return data
+  //     } catch (error) {
+  //       console.error("Error fetching coin market data:", error)
+  //       return { prices: [], market_caps: [], total_volumes: [] }
+  //     }
+  //   }
+  //   fetchCoinPriceHistory("sui")
+  // }, [])
 
-      const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart/range`
-
-      try {
-        const { data } = await axios.get(url, {
-          params: {
-            vs_currency: "usd",
-            from: fromTimestamp,
-            to: nowTimestamp,
-            precision: pricePrecision,
-          },
-          headers: {
-            accept: "application/json",
-            "x-cg-demo-api-key": "CG-JwZR5W5Wk65HhZTgD6cUejGt",
-          },
-        })
-
-        console.log("response", data)
-        const latestprice = data.prices
-        console.log("latestprice", latestprice[0][1])
-
-        setCurrentSuiPrice(latestprice[0][1])
-        return data
-      } catch (error) {
-        console.error("Error fetching coin market data:", error)
-        return { prices: [], market_caps: [], total_volumes: [] }
-      }
-    }
-    fetchCoinPriceHistory("sui")
-  }, [])
-
-  useEffect(() => {
-    // Keep test price at 10% of main price or lower
-    const maxTestPrice = Math.min(formData.price * 0.1, 9.99)
-    if (formData.testPrice > maxTestPrice) {
-      setFormData((prev) => ({
-        ...prev,
-        testPrice: parseFloat(maxTestPrice.toFixed(2)),
-      }))
-    }
-  }, [formData.price, formData.testPrice])
+  // TODO: Old test price management - Commented out for single SUI pricing
+  // useEffect(() => {
+  //   // Keep test price at 10% of main price or lower
+  //   const maxTestPrice = Math.min(formData.price * 0.1, 9.99)
+  //   if (formData.testPrice > maxTestPrice) {
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       testPrice: parseFloat(maxTestPrice.toFixed(2)),
+  //     }))
+  //   }
+  // }, [formData.price, formData.testPrice])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -359,7 +362,7 @@ const SellPrompt = () => {
 
       // Temporary mock
       toast.warning("Sui blockchain integration pending")
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Encryption error:", error)
       toast.error(error.message || "Failed to encrypt prompt")
     } finally {
@@ -789,6 +792,38 @@ const SellPrompt = () => {
                     )}
                   </div>
 
+                  {/* Price Input - SUI */}
+                  <div className="space-y-3">
+                    <Label htmlFor="price" className="text-white font-semibold text-base">
+                      Price (SUI)
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="price"
+                        name="price"
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        placeholder="10"
+                        value={formData.price}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0
+                          setFormData((prev) => ({ ...prev, price: value }))
+                        }}
+                        required
+                        className="bg-card/50 border-orange-500/20 focus:border-orange-500 rounded-xl py-6 text-lg pr-16"
+                      />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                        <span className="text-lg font-semibold text-teal-400">SUI</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400 flex items-center gap-1">
+                      <Info className="h-3 w-3" />
+                      Set a competitive price in SUI tokens based on the complexity and value of your content.
+                    </p>
+                  </div>
+
+                  {/* TODO: Old USD pricing with sliders - Commented out for SUI blockchain
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="price" className="text-white font-semibold">Price (USD)</Label>
@@ -877,6 +912,7 @@ const SellPrompt = () => {
                       {formData.price.toFixed(2)}).
                     </p>
                   </div>
+                  */}
 
                   {/* Navigation Buttons */}
                   <div className="flex items-center justify-between pt-6 border-t border-orange-500/10">
