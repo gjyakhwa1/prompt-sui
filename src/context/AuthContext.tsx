@@ -29,6 +29,7 @@ export const AuthProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const login = (wallet: any) => {
     setIsLoading(true);
+    console.log(wallet)
     connect({ wallet: wallet });
   };
 

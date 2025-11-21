@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { SuiClientProvider, WalletProvider } from "@mysten/dapp-kit";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { ToastContainer } from "react-toastify";
 
 import "@/index.css";
 import App from "@/App.tsx";
@@ -8,7 +9,7 @@ import { queryClient } from "@/lib/reactQuery";
 import networkConfig from "@/lib/networkConfig";
 import RegisterEnokiWallets from "@/providers/RegisterEnokiWallets";
 import { VITE_APP_NETWORK } from "@/constants";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 const envNetwork =
   VITE_APP_NETWORK || ("testnet" as keyof typeof networkConfig);
@@ -26,6 +27,18 @@ createRoot(document.getElementById("root")!).render(
       <WalletProvider autoConnect>
         <AuthProvider>
           <App />
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick={false}
+            rtl={false}
+            pauseOnFocusLoss={false}
+            draggable={false}
+            pauseOnHover={false}
+            theme="light"
+          />
         </AuthProvider>
       </WalletProvider>
     </SuiClientProvider>
