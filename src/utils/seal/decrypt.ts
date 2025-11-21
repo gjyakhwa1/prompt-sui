@@ -41,10 +41,9 @@ export async function decryptData(params: DecryptParams): Promise<Uint8Array> {
   // Step 2: Get personal message and sign it
   console.log("✍️ Requesting signature...");
   const personalMessage = sessionKey.getPersonalMessage();
-  const messageBytes = new TextEncoder().encode(personalMessage);
 
   const { signature } = await signPersonalMessage({
-    message: messageBytes,
+    message: personalMessage,
   });
 
   // Step 3: Attach signature to session key

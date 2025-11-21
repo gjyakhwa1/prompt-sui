@@ -154,16 +154,11 @@ const PromptDetail = () => {
       const decrypted = await marketplaceService.decryptPrompt(
         id,
         walletAddress,
-        async (message) => {
-          const result = await signPersonalMessage({
-            message: message.message,
-          });
-          return { signature: result.signature };
-        }
+        signPersonalMessage,
       );
 
       setDecryptedPrompt(decrypted);
-      toast.success("Prompt decrypted successfully!");
+      toast.success(`Prompt decrypted successfully! ${decrypted}`);
       
     } catch (error) {
       console.error("Decryption error:", error);

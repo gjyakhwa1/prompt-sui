@@ -276,6 +276,7 @@ export class MarketplaceService {
         category: (promptFields?.category as number) || 0,
         encryptedData: (promptFields?.encrypted_data as number[]) || [],
         buyers: (promptFields?.buyers as string[]) || [],
+        allowlist: (promptFields?.allowlist as string[]) || [],
       };
     } catch (error) {
       console.error("Error fetching prompt:", error);
@@ -391,14 +392,9 @@ export class MarketplaceService {
         throw new Error("No encrypted data found for this prompt");
       }
 
-      // Step 2: Check if user is in buyers list
-      if (!prompt.buyers.includes(userAddress)) {
-        throw new Error("You must purchase this prompt before decrypting it");
-      }
 
       // Step 3: Convert encrypted data array to Uint8Array
       const encryptedBytes = new Uint8Array(prompt.encryptedData);
-
       // Step 4: Decrypt using SEAL
       const { decryptData } = await import("@/utils/seal/decrypt");
 
@@ -436,4 +432,5 @@ export interface PromptListing {
   category: number; // 0=text, 1=image
   encryptedData: number[];
   buyers: string[];
+  allowlist: string[];
 }
