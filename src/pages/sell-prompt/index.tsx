@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 // import axios from "axios" // Removed - not needed without USD price fetching
 import { useCurrentAccount } from "@mysten/dapp-kit"
+import { uploadToWalrus } from "@/services/walrus.service"
 import { useLogin } from "@/context/AuthContext"
 import {
   Select,
@@ -69,6 +70,7 @@ const SellPrompt = () => {
   // const [currentSuiPrice, setCurrentSuiPrice] = useState(0) // Removed - not needed for SUI pricing
   const [imageSizes, setImageSizes] = useState<Record<number, string>>({})
   const [imageFiles, setImageFiles] = useState<Record<number, File>>({})
+  const [uploadingImages, setUploadingImages] = useState<Record<number, boolean>>({})
   const [isEncrypting, setIsEncrypting] = useState(false)
 
   // Load existing prompt data when editing
@@ -1201,10 +1203,22 @@ const SellPrompt = () => {
                                       }}
                                     />
                                     <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs py-1 px-2 rounded">
-                                      {imageSizes[index]
-                                        ? `${imageSizes[index]} MB`
-                                        : "Calculating size..."}
+                                      {uploadingImages[index] ? (
+                                        <span className="flex items-center gap-1">
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                          Uploading to Walrus...
+                                        </span>
+                                      ) : imageSizes[index] ? (
+                                        `${imageSizes[index]} MB`
+                                      ) : (
+                                        "Calculating size..."
+                                      )}
                                     </div>
+                                    {formData.sampleImages[index] && formData.sampleImages[index].includes('walrus') && (
+                                      <div className="absolute top-2 left-2 bg-teal-500 text-white text-xs px-2 py-1 rounded">
+                                        Walrus
+                                      </div>
+                                    )}
                                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <Button
                                         type="button"
@@ -1242,19 +1256,27 @@ const SellPrompt = () => {
                                           type="file"
                                           accept="image/*"
                                           className="hidden"
-                                          onChange={(e) => {
+                                          onChange={async (e) => {
                                             if (
                                               e.target.files &&
                                               e.target.files[0]
                                             ) {
                                               const file = e.target.files[0]
                                               
+                                              // Validate file size (max 10MB)
+                                              const maxSize = 10 * 1024 * 1024 // 10MB
+                                              if (file.size > maxSize) {
+                                                toast.error("Image size must be less than 10MB")
+                                                return
+                                              }
+                                              
                                               setImageFiles((prev) => ({
                                                 ...prev,
                                                 [index]: file,
                                               }))
                                               
-                                              const url = URL.createObjectURL(file)
+                                              // Show preview with blob URL
+                                              const previewUrl = URL.createObjectURL(file)
 
                                               const fileSizeMB = (
                                                 file.size /
@@ -1265,7 +1287,32 @@ const SellPrompt = () => {
                                                 [index]: fileSizeMB,
                                               }))
 
-                                              handleImageUpload(index, url)
+                                              handleImageUpload(index, previewUrl)
+                                              
+                                              // Upload to Walrus in background
+                                              setUploadingImages((prev) => ({
+                                                ...prev,
+                                                [index]: true,
+                                              }))
+                                              
+                                              try {
+                                                toast.info(`Uploading image ${index + 1} to Walrus...`)
+                                                const result = await uploadToWalrus(file)
+                                                
+                                                // Update with Walrus URL
+                                                handleImageUpload(index, result.url)
+                                                
+                                                toast.success(`Image ${index + 1} uploaded successfully!`)
+                                                console.log(`Image ${index} uploaded to Walrus:`, result)
+                                              } catch (error) {
+                                                console.error(`Failed to upload image ${index}:`, error)
+                                                toast.error(`Failed to upload image ${index + 1}. Using local preview.`)
+                                              } finally {
+                                                setUploadingImages((prev) => ({
+                                                  ...prev,
+                                                  [index]: false,
+                                                }))
+                                              }
                                             }
                                           }}
                                         />
