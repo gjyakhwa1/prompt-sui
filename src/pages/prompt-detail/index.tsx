@@ -319,6 +319,29 @@ const PromptDetail = () => {
               <p className="text-gray-300 mb-4">{prompt.description}</p>
             </div>
 
+            {/* Decrypted Prompt (only shown after purchase and decrypt) */}
+            {decryptedPrompt && (
+              <div className="glow-card rounded-2xl p-6 border-2 border-green-500/30">
+                <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
+                  <Unlock className="h-6 w-6 text-green-400 mr-2" />
+                  Your Decrypted Prompt
+                </h2>
+                <div className="bg-gray-800/50 rounded-lg p-4 mb-4">
+                  <pre className="text-gray-300 whitespace-pre-wrap font-mono text-sm">
+                    {decryptedPrompt}
+                  </pre>
+                </div>
+                <Button
+                  onClick={() => handleCopyToClipboard(decryptedPrompt)}
+                  variant="outline"
+                  className="w-full border-green-500/50 text-green-300 hover:bg-green-500/10"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy to Clipboard
+                </Button>
+              </div>
+            )}
+
             {/* Sample Input/Output */}
             <div className="glow-card rounded-2xl p-6">
               <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
@@ -356,29 +379,6 @@ const PromptDetail = () => {
                 </div>
               </div>
             </div>
-
-            {/* Decrypted Prompt (only shown after purchase and decrypt) */}
-            {decryptedPrompt && (
-              <div className="glow-card rounded-2xl p-6 border-2 border-green-500/30">
-                <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
-                  <Unlock className="h-6 w-6 text-green-400 mr-2" />
-                  Your Decrypted Prompt
-                </h2>
-                <div className="bg-gray-800/50 rounded-lg p-4 mb-4">
-                  <pre className="text-gray-300 whitespace-pre-wrap font-mono text-sm">
-                    {decryptedPrompt}
-                  </pre>
-                </div>
-                <Button
-                  onClick={() => handleCopyToClipboard(decryptedPrompt)}
-                  variant="outline"
-                  className="w-full border-green-500/50 text-green-300 hover:bg-green-500/10"
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy to Clipboard
-                </Button>
-              </div>
-            )}
 
             {/* Author Info */}
             <div className="glow-card rounded-2xl p-6">
