@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label"
 import { useCurrentAccount } from "@mysten/dapp-kit"
 import { uploadToWalrus } from "@/services/walrus.service"
 import { useLogin } from "@/context/AuthContext"
+import { MarketplaceService } from "@/services/marketplace.service"
+import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit"
 import {
   Select,
   SelectContent,
@@ -32,6 +34,8 @@ const SellPrompt = () => {
   const { id } = useParams<{ id: string }>()
   const currentAccount = useCurrentAccount()
   const { login } = useLogin()
+  const suiClient = useSuiClient()
+  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(false)
@@ -45,11 +49,9 @@ const SellPrompt = () => {
     subcategory: "",
     model: "dall-e-3",
     price: 10, // Price in SUI tokens
-    // testPrice: 1.99, // Removed - using single SUI price
     systemPrompt: "",
     userPrompt: "",
-    bottleId: "",
-    encryptedData: null as Uint8Array | null,
+    promptId: "", // Will be set after creating prompt on-chain
     sampleInputs: [
       "Test Sample Input",
     ],
@@ -59,19 +61,8 @@ const SellPrompt = () => {
     ],
   })
 
-  const [showAIModel, setShowAiModel] = useState(false)
-  const [modelSettings, setModelSettings] = useState({
-    temperature: [0.7],
-    maxTokens: [1500],
-    topP: [0.9],
-    frequencyPenalty: [0.5],
-    presencePenalty: [0.5],
-  })
-  // const [currentSuiPrice, setCurrentSuiPrice] = useState(0) // Removed - not needed for SUI pricing
   const [imageSizes, setImageSizes] = useState<Record<number, string>>({})
-  const [imageFiles, setImageFiles] = useState<Record<number, File>>({})
   const [uploadingImages, setUploadingImages] = useState<Record<number, boolean>>({})
-  const [isEncrypting, setIsEncrypting] = useState(false)
 
   // Load existing prompt data when editing
   useEffect(() => {
@@ -228,7 +219,6 @@ const SellPrompt = () => {
         [name]: value,
         subcategory: "",
       }))
-      setShowAiModel(value === "prompt")
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -325,65 +315,16 @@ const SellPrompt = () => {
     })
   }
 
-  const handleEncryptPrompt = async () => {
-    const walletAddress = currentAccount?.address
 
-    if (!formData.systemPrompt.trim()) {
-      toast.error("Please enter a system prompt to encrypt")
-      return
-    }
-
-    if (!walletAddress) {
-      toast.error("Please connect your wallet to encrypt your prompt")
-      return
-    }
-
-    setIsEncrypting(true)
-    try {
-      toast.info("Encrypting your prompt...")
-
-      // TODO: Sui Blockchain Integration - Encrypt prompt using SEAL on Sui
-      // const { BackendSealService } = await import("@/services/seal.service")
-      // const backendService = new BackendSealService(getFullnodeUrl("testnet"))
-      // 
-      // const { bottleId, encryptedData } = await backendService.encryptPromptQuick(
-      //   formData.systemPrompt,
-      //   walletAddress
-      // )
-      // 
-      // setFormData((prev) => ({
-      //   ...prev,
-      //   bottleId: bottleId,
-      //   encryptedData: encryptedData,
-      // }))
-      // 
-      // toast({
-      //   title: "Success! ✨",
-      //   description: `Prompt encrypted! Bottle ID: ${bottleId.slice(0, 8)}...`,
-      // })
-
-      // Temporary mock
-      toast.warning("Sui blockchain integration pending")
-    } catch (error: unknown) {
-      console.error("Encryption error:", error)
-      toast.error(error.message || "Failed to encrypt prompt")
-    } finally {
-      setIsEncrypting(false)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const walletAddress = currentAccount?.address
 
-    console.log("Form submitted with data:", formData);
-    console.log("User address:", walletAddress);
-
     // Check if user is logged in
     if (!walletAddress) {
       toast.error("Please connect your wallet to submit a prompt")
-      login()
       return
     }
 
@@ -394,24 +335,17 @@ const SellPrompt = () => {
       !formData.category ||
       !formData.systemPrompt
     ) {
-      console.log("Validation failed:", {
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        systemPrompt: formData.systemPrompt,
-      });
       toast.error("Please fill in all required fields before submitting")
       return
     }
 
     // Model is only required for "prompt" category
     if (formData.category === "prompt" && !formData.model) {
-      console.log("Model validation failed for prompt category");
       toast.error("Please select an AI model for your prompt")
       return
     }
 
-    // Check sample inputs/outputs - only for prompt category
+    // Check sample inputs/outputs
     if (formData.category === "prompt") {
       const hasInput = formData.sampleInputs[0] && formData.sampleInputs[0].trim() !== "";
       
@@ -419,15 +353,6 @@ const SellPrompt = () => {
       const hasOutput = isImageModel 
         ? (formData.sampleImages[0] && formData.sampleImages[0].trim() !== "")
         : (formData.sampleOutputs[0] && formData.sampleOutputs[0].trim() !== "");
-      
-      console.log("Sample validation:", {
-        sampleInput: formData.sampleInputs[0],
-        sampleOutput: formData.sampleOutputs[0],
-        sampleImage: formData.sampleImages[0],
-        isImageModel,
-        hasInput,
-        hasOutput,
-      });
 
       if (!hasInput) {
         toast.error("Please provide at least one sample input")
@@ -447,113 +372,57 @@ const SellPrompt = () => {
     setIsSubmitting(true)
 
     try {
-      // TODO: Sui Blockchain Integration - Upload images to decentralized storage
-      // toast({
-      //   title: "Uploading images...",
-      //   description: "Please wait while we upload your images.",
-      // })
-      // 
-      // const uploadedImageUrls = [...formData.sampleImages]
-      // for (const [index, file] of Object.entries(imageFiles)) {
-      //   const idx = Number(index)
-      //   try {
-      //     console.log(`📤 Uploading image ${idx}:`, file.name)
-      //     const url = await uploadService.uploadImage(file)
-      //     uploadedImageUrls[idx] = url
-      //     console.log(`✅ Uploaded image ${idx}:`, url)
-      //   } catch (error) {
-      //     console.error(`Failed to upload image ${idx}:`, error)
-      //     toast({
-      //       title: "Image upload warning",
-      //       description: `Failed to upload image ${idx + 1}. Using placeholder.`,
-      //       variant: "destructive",
-      //     })
-      //   }
-      // }
-      
-      // TODO: Sui Blockchain Integration - Encrypt and store prompt on Sui blockchain
-      // toast({
-      //   title: "Uploading to Sui...",
-      //   description: "Encrypting and storing your prompt securely.",
-      // })
-      // 
-      // let walrusContentId = id;
-      // 
-      // if (!isEditMode) {
-      //   const encryptedPrompt = await walrusService.encryptContent(formData.systemPrompt)
-      //   const walrusUpload = await walrusService.uploadContent(encryptedPrompt, {
-      //     title: formData.title,
-      //     owner: walletAddress,
-      //   })
-      //   
-      //   walrusContentId = walrusUpload.blobId
-      // }
-      
-      // TODO: Sui Blockchain Integration - Submit content to Sui smart contract
-      // const filteredSampleInputs = formData.sampleInputs.filter(input => input && input.trim() !== "");
-      // const filteredSampleOutputs = formData.sampleOutputs.filter(output => output && output.trim() !== "");
-      // const filteredSampleImages = uploadedImageUrls.filter(image => image && image.trim() !== "" && !image.startsWith("blob:"));
-      // 
-      // const encryptedMessageBase64 = formData.encryptedData 
-      //   ? btoa(String.fromCharCode.apply(null, Array.from(formData.encryptedData)))
-      //   : undefined
-      // 
-      // const contentData = {
-      //   content_id: walrusContentId,
-      //   owner_id: walletAddress,
-      //   title: formData.title,
-      //   description: formData.description,
-      //   llm_model: formData.model || "gpt-3.5-turbo",
-      //   llm_settings: {
-      //     temperature: modelSettings.temperature[0],
-      //     max_tokens: modelSettings.maxTokens[0],
-      //     top_p: modelSettings.topP[0],
-      //     frequency_penalty: modelSettings.frequencyPenalty[0],
-      //     presence_penalty: modelSettings.presencePenalty[0],
-      //   },
-      //   price: formData.price,
-      //   metadata: {
-      //     content_type: formData.category === "prompt" ? "text" : "other",
-      //     category: formData.category,
-      //     subcategory: formData.subcategory,
-      //     test_price: formData.testPrice,
-      //     long_description: formData.longDescription,
-      //     sample_inputs: filteredSampleInputs,
-      //     sample_outputs: filteredSampleOutputs,
-      //     sample_images: filteredSampleImages,
-      //     bottle_id: formData.bottleId || "",
-      //     user_prompt: formData.userPrompt,
-      //   },
-      //   prompt: formData.systemPrompt,
-      //   preview_url: filteredSampleImages[0] || "",
-      //   encrypted_message: encryptedMessageBase64,
-      // }
-      // 
-      // console.log("💾 Saving content data to Sui blockchain:", contentData)
-      // 
-      // let response;
-      // if (isEditMode && id) {
-      //   response = await contentService.updateContent(id, contentData)
-      // } else {
-      //   response = await contentService.addContent(contentData)
-      // }
+      toast.info("Starting listing process...")
 
-      toast.warning("Sui blockchain integration is not yet implemented")
+      // Determine category: 0 for text, 1 for image
+      const isImageModel = formData.model && (formData.model.includes("dall-e") || formData.model.includes("stable-diffusion"));
+      const category = isImageModel ? 1 : 0;
 
-      // Temporary: Show success message
-      // toast({
-      //   title: isEditMode ? "Prompt Updated Successfully!" : "Prompt Submitted Successfully!",
-      //   description: isEditMode 
-      //     ? `Your prompt "${formData.title}" has been updated.`
-      //     : `Your prompt "${formData.title}" has been added to the marketplace.`,
-      // })
-      // 
-      // setTimeout(() => {
-      //   navigate("/dashboard")
-      // }, 1500)
-    } catch (error: unknown) {
+      // Get the appropriate sample output
+      const outputSample = isImageModel 
+        ? formData.sampleImages[0] 
+        : formData.sampleOutputs[0];
+
+      // Create marketplace service
+      const marketplaceService = new MarketplaceService(suiClient);
+
+      // List the prompt (this handles all 3 steps internally)
+      const result = await marketplaceService.listPrompt(
+        {
+          title: formData.title,
+          description: formData.description,
+          price: formData.price,
+          inputSample: formData.sampleInputs[0],
+          outputSample: outputSample,
+          category: category,
+          promptContent: formData.systemPrompt,
+        },
+        (tx) => {
+          return new Promise((resolve, reject) => {
+            signAndExecuteTransaction(
+              {
+                transaction: tx,
+              },
+              {
+                onSuccess: (result) => resolve(result),
+                onError: (error) => reject(error),
+              }
+            );
+          });
+        }
+      );
+
+      console.log("✅ Prompt listed successfully:", result);
+
+      toast.success(`Prompt "${formData.title}" listed successfully!`)
+      
+      setTimeout(() => {
+        navigate("/")
+      }, 1500)
+    } catch (error) {
       console.error("Error submitting prompt:", error)
-      toast.error(error.message || "Failed to submit prompt. Please try again.")
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit prompt. Please try again."
+      toast.error(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
@@ -988,59 +857,18 @@ const SellPrompt = () => {
                     </p>
                   </div>
 
-                  {/* Bottle ID and Encrypt Button */}
+                  {/* Encryption Info */}
                   <div className="space-y-3 p-4 bg-purple-500/5 border border-purple-300/30 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="bottleId" className="text-sm font-medium">
-                        Bottle ID (Encryption)
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-purple-400" />
+                      <Label className="text-sm font-medium text-purple-300">
+                        Automatic Encryption
                       </Label>
-                      {formData.bottleId && (
-                        <span className="text-xs text-green-500 flex items-center gap-1">
-                          <Lock className="w-3 h-3" />
-                          Encrypted
-                        </span>
-                      )}
                     </div>
-                    <Input
-                      id="bottleId"
-                      name="bottleId"
-                      placeholder="Bottle ID will appear here after encryption"
-                      value={formData.bottleId}
-                      readOnly
-                      className="font-mono text-xs bg-background/50"
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleEncryptPrompt}
-                      disabled={isEncrypting || !formData.systemPrompt.trim()}
-                      variant="outline"
-                      className="w-full border-purple-500 text-purple-400 hover:bg-purple-500/10"
-                    >
-                      {isEncrypting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Encrypting...
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="w-4 h-4 mr-2" />
-                          {formData.bottleId ? "Re-encrypt Prompt" : "Encrypt Prompt"}
-                        </>
-                      )}
-                    </Button>
-                    <p className="text-xs text-gray-500">
-                      Click to encrypt your system prompt using SEAL on Sui blockchain. The bottle ID will be stored with your prompt.
-                      <br />
-                      <strong>Important:</strong> Encryption uses a backend account, which allows automatic buyer access when purchased.
+                    <p className="text-xs text-gray-400">
+                      Your system prompt will be automatically encrypted using SEAL when you submit. 
+                      Only buyers who pay will be able to decrypt and access the full prompt content.
                     </p>
-                    {!formData.bottleId && formData.systemPrompt.trim() && (
-                      <div className="flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded text-xs text-amber-800 dark:text-amber-200">
-                        <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                        <span>
-                          Recommended: Encrypt your prompt before submitting to protect your intellectual property.
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1117,7 +945,7 @@ const SellPrompt = () => {
                       </div>
                     </div>
                   <div className="space-y-4">
-                    {formData.sampleInputs.map((input, index) => (
+                    {formData.sampleInputs.map((_input, index) => (
                       <div
                         key={index}
                         className="space-y-4 border rounded-lg p-4 relative"
@@ -1267,11 +1095,6 @@ const SellPrompt = () => {
                                                 toast.error("Image size must be less than 10MB")
                                                 return
                                               }
-                                              
-                                              setImageFiles((prev) => ({
-                                                ...prev,
-                                                [index]: file,
-                                              }))
                                               
                                               // Show preview with blob URL
                                               const previewUrl = URL.createObjectURL(file)
