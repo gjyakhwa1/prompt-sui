@@ -28,7 +28,7 @@ const Dashboard = () => {
   const effectiveAddress = account?.address;
   const { login } = useLogin();
 
-  const { uploadedPrompts, purchasedPrompts, loading, error, refetch } =
+  const { uploadedPrompts, purchasedPrompts, loading, refetch } =
     useDashboardData(effectiveAddress);
 
   useEffect(() => {
@@ -44,10 +44,10 @@ const Dashboard = () => {
   // Calculate stats from real data
   const totalUploads = uploadedPrompts.filter((p) => !p.isDefault).length;
   const totalPurchases = purchasedPrompts.filter((p) => !p.isDefault).length;
-  const totalSales = uploadedPrompts.reduce(
-    (sum, p) => sum + (p.sales || 0),
-    0
-  );
+  // const totalSales = uploadedPrompts.reduce(
+  //   (sum, p) => sum + (p.sales || 0),
+  //   0
+  // );
   const totalRevenue = uploadedPrompts.reduce((sum, p) => {
     const revenue = parseFloat(p.revenue?.replace("$", "") || "0");
     return sum + revenue;
