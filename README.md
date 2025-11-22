@@ -1,73 +1,46 @@
-# React + TypeScript + Vite
+# **Prompt Sui - Product Overview Document**
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## **1. Product Overview**
 
-Currently, two official plugins are available:
+**Prompt Sui** is a decentralized marketplace built on the Sui blockchain that enables prompt engineers to monetize their AI prompts while providing buyers with verification tools to test prompts before purchase. The platform supports both text and image prompts with cryptographic security and decentralized storage.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## **2. Core Features**
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+### **Feature Matrix**
 
-## Expanding the ESLint configuration
+| Feature | Description | Technical Implementation |
+|---------|-------------|-------------------------|
+| **Prompt Listing & Selling** | Create and list text/image prompts for sale with custom pricing | Sui smart contracts + Walrus storage |
+| **Decentralized Storage** | Store large prompts and images on Walrus | Walrus Protocol (blob storage) |
+| **Secure Transactions** | Purchase prompts with automatic royalty distribution | Sui Pay + Escrow smart contracts |
+| **Prompt Encryption** | Protect prompt content until purchase | SEAL Protocol encryption |
+| **Global Marketplace** | Browse and filter prompts by category, AI model, rating | Indexer + Search API |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## **3. Technology Stack**
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### **Blockchain & Protocol Layer**
+- **Sui Blockchain**: High-performance Move-based chain for transactions and ownership
+- **Walrus Protocol**: Decentralized blob storage for image prompts and large text prompts
+- **Seal Protocol**: Cryptographic sealing/unsealing of prompt content
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### **Authentication & Identity**
+- **Mysten Labs Wallet Kit**: Wallet connection and transaction signing
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### **Frontend**
+- **React**: React framework
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Responsive UI styling
+- **Vercel**: Deployment and edge functions
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### **Storage & Indexing**
+- **Walrus Aggregators**: Primary storage for prompt data
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+
+## **10. Contact & Resources**
+
+- **Demo**: https://promptsui.vercel.app/
+- **GitHub**: https://github.com/Abishkardhenga/p2p
