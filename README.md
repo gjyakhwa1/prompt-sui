@@ -38,9 +38,3 @@
 
 ### **Storage & Indexing**
 - **Walrus Aggregators**: Primary storage for prompt data
-
-
-## **10. Contact & Resources**
-
-- **Demo**: https://promptsui.vercel.app/
-- **GitHub**: https://github.com/Abishkardhenga/p2p
