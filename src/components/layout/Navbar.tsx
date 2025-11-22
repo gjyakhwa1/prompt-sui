@@ -78,6 +78,12 @@ const Navbar = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="text-gray-300 hover:text-white focus:text-white hover:bg-orange-500/10 focus:bg-orange-500/10">
+                    <Link to="/profile" className="w-full flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-gray-300 hover:text-white focus:text-white hover:bg-orange-500/10 focus:bg-orange-500/10">
                     <Link to="/sell-prompt" className="w-full">
                       Sell a Prompt
                     </Link>
@@ -123,6 +129,15 @@ const Navbar = () => {
                         >
                           <LayoutDashboard className="h-4 w-4 mr-2" />
                           Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-gray-300 hover:text-white focus:text-white hover:bg-orange-500/10 focus:bg-orange-500/10">
+                        <Link
+                          to="/profile"
+                          className="w-full flex items-center"
+                        >
+                          <User className="h-4 w-4 mr-2" />
+                          Profile
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem className="text-gray-300 hover:text-white focus:text-white hover:bg-orange-500/10 focus:bg-orange-500/10">
